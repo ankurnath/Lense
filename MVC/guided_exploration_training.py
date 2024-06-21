@@ -10,6 +10,7 @@ import sys
 import getopt
 import numpy as np
 import copy
+from util import save_graph,load_graph
 
 
 def distance(x, y):
@@ -21,12 +22,12 @@ if __name__ == "__main__":
     random.seed(1)
     np.random.seed(1)
 
-    graph_name = "youtube_train"
+    graph_name = "wiki_train"
     encoder_name = "encoder"
     num_eps = 100
     chunksize = 28
     soln_budget = 100
-    subgraph_size = 750
+    subgraph_size = 300
     selection_budget = 7500
     gnn_input = 30
     max_memory = 20000
@@ -71,10 +72,12 @@ if __name__ == "__main__":
             alpha = float(arg)
 
     encoder = torch.load(f"{graph_name}/budget_{soln_budget}/{encoder_name}/{encoder_name}", map_location=torch.device("cpu"))
-    graph = nx.read_gpickle(f"{graph_name}/main")
+    # graph = nx.read_gpickle(f"{graph_name}/main")
+    graph=load_graph(f"{graph_name}/main")
     best_embeddings = get_best_embeddings(encoder, f"{graph_name}/budget_{soln_budget}/graph_data")
     encoder.to("cpu")
-    dqn = GuidedDQN(gnn_input=gnn_input, batch_size=128, decay_rate=decay_rate, ff_hidden=ff_size, state_dim=embedding_size, gamma=0.95, max_memory=max_memory, cuda=cuda,
+    dqn = GuidedDQN(gnn_input=gnn_input, batch_size=128, decay_rate=decay_rate, ff_hidden=ff_size, state_dim=embedding_size, 
+                    gamma=0.95, max_memory=max_memory, cuda=cuda,
                     alpha=alpha)
     env = GuidedExplorationEnv(graph, soln_budget, subgraph_size, encoder, best_embeddings, graph_name, action_limit=selection_budget, beta=beta, cuda=cuda)
     best_embedding = env.best_embedding_cpu.numpy()

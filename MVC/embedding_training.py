@@ -8,6 +8,7 @@ from pytorch_metric_learning import losses, miners
 from pytorch_tools import EarlyStopping
 import sys
 import getopt
+import os
 
 random.seed(1)
 torch.manual_seed(1)
@@ -101,4 +102,18 @@ for epoch in range(1000):
     if es.step(torch.FloatTensor([val_losses[-1]])) and epoch > 20:
         break
 
+
+# Create the full path to the encoder folder
+encoder_folder = os.path.join(graph, f"budget_{budget}", "encoder")
+
+# Create all necessary folders if they don't exist
+os.makedirs(encoder_folder, exist_ok=True)
+
+# Save the encoder model
+encoder_path = os.path.join(encoder_folder, "encoder")
+
+
 torch.save(encoder, f"{graph}/budget_{budget}/encoder/encoder")
+
+# Print a message indicating that the file has been saved
+print(f"Encoder model saved at: {encoder_path}")

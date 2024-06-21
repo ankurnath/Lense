@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 # import dgl
 # import dgl.function as fn
-from torch_cluster import random_walk
+# from torch_cluster import random_walk
 import numpy as np
 
 device = "cuda" if torch.cuda.is_available() else "cpu"

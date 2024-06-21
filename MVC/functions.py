@@ -8,7 +8,7 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.transforms import ToUndirected
 import time
 from networkx.algorithms.centrality import eigenvector_centrality
-
+from collections import defaultdict
 
 class ProblemError(Exception):
 
@@ -17,16 +17,30 @@ class ProblemError(Exception):
         super().__init__(self.message)
 
 
+### Efficient implementation 
+
 def cover(graph: nx.Graph, selected_nodes):
-    graph = graph.copy()
-    quality = len(selected_nodes)
+
+    covered_elements=set()
+
     for node in selected_nodes:
-        nodes_covered = list(graph.neighbors(node))
-        quality += len(nodes_covered)
-        for nd in nodes_covered:
-            if nd not in selected_nodes:
-                graph.remove_node(nd)
-    return quality
+        covered_elements.add(node)
+        for neighbour in graph.neighbors(node):
+            covered_elements.add(neighbour)
+
+    return len(covered_elements)
+
+
+# def cover(graph: nx.Graph, selected_nodes):
+#     graph = graph.copy()
+#     quality = len(selected_nodes)
+#     for node in selected_nodes:
+#         nodes_covered = list(graph.neighbors(node))
+#         quality += len(nodes_covered)
+#         for nd in nodes_covered:
+#             if nd not in selected_nodes:
+#                 graph.remove_node(nd)
+#     return quality
 
 
 def calculate_degree(neighbors, is_covered):
@@ -43,34 +57,78 @@ def select_node(node, neighbors, is_covered):
         is_covered[int(nbr)] = True
 
 
-def greedy_mvc(main_graph, budget, set_nodes=None):
-    if not set_nodes:
-        set_nodes = sorted(main_graph.nodes())
-    num_nodes = main_graph.number_of_nodes()
+### Efficient implementation 
+        
+def gain_adjustment(graph,gains,selected_element,uncovered):
 
-    is_covered = [False for _ in range(0, num_nodes)]
+    if uncovered[selected_element]:
+        gains[selected_element]-=1
+        uncovered[selected_element]=False
+        for neighbor in graph.neighbors(selected_element):
+            if neighbor in gains and gains[neighbor]>0:
+                gains[neighbor]-=1
 
-    solution_set = []
+    for neighbor in graph.neighbors(selected_element):
+        if uncovered[neighbor]:
+            uncovered[neighbor]=False
+            
+            if neighbor in gains:
+                gains[neighbor]-=1
+            for neighbor_of_neighbor in graph.neighbors(neighbor):
+                if neighbor_of_neighbor  in gains:
+                    gains[neighbor_of_neighbor ]-=1
+def greedy_mvc(graph, budget, set_nodes=None):
 
-    while len(solution_set) != budget:
-        denom = 0.0
+    gains={node:graph.degree(node)+1 for node in graph.nodes()}
+    solution=[]
+    uncovered=defaultdict(lambda: True)
 
-        gains = [0 for _ in range(0, num_nodes)]
-        for nd in set_nodes:
-            gain = calculate_degree(main_graph.neighbors(nd), is_covered)
-            gains[int(nd)] = gain
-            denom += gain
-        if np.sum(gains) == 0:
+    for _ in range(budget):
+        selected_element=max(gains, key=gains.get)
+        if gains[selected_element]==0:
+            print('All elements are already covered')
             break
-        selection = -1
-        max_gain = -1
-        for nd in set_nodes:
-            if gains[int(nd)] >= max_gain and nd not in solution_set:
-                selection = nd
-                max_gain = gains[int(nd)]
-        solution_set.append(selection)
-        select_node(selection, main_graph.neighbors(selection), is_covered)
-    return solution_set
+        solution.append(selected_element)
+        gain_adjustment(graph,gains,selected_element,uncovered)
+
+    return solution
+    # pass
+
+
+
+       
+
+
+
+
+# def greedy_mvc(main_graph, budget, set_nodes=None):
+#     if not set_nodes:
+#         set_nodes = sorted(main_graph.nodes())
+#     num_nodes = main_graph.number_of_nodes()
+
+#     is_covered = [False for _ in range(0, num_nodes)]
+
+#     solution_set = []
+
+#     while len(solution_set) != budget:
+#         denom = 0.0
+
+#         gains = [0 for _ in range(0, num_nodes)]
+#         for nd in set_nodes:
+#             gain = calculate_degree(main_graph.neighbors(nd), is_covered)
+#             gains[int(nd)] = gain
+#             denom += gain
+#         if np.sum(gains) == 0:
+#             break
+#         selection = -1
+#         max_gain = -1
+#         for nd in set_nodes:
+#             if gains[int(nd)] >= max_gain and nd not in solution_set:
+#                 selection = nd
+#                 max_gain = gains[int(nd)]
+#         solution_set.append(selection)
+#         select_node(selection, main_graph.neighbors(selection), is_covered)
+#     return solution_set
 
 
 def prob_greedy_mvc(main_graph, set_nodes, delta):
@@ -118,16 +176,20 @@ def make_graph_features_for_encoder(graph, graph_name):
             features = pickle.load(f)
     except FileNotFoundError:
         features = {}
-        out_degrees = [len(list(graph.neighbors(node))) for node in range(graph.number_of_nodes())]
-        out_degree_max = np.max(out_degrees)
-        out_degree_min = np.min(out_degrees)
+        # out_degrees = [len(list(graph.neighbors(node))) for node in range(graph.number_of_nodes())]
+        out_degrees={node:graph.degree(node) for node in graph.nodes()}
+        out_degree_max = max (out_degrees.values())
+        out_degree_min = min (out_degrees.values())
+        # out_degree_max = np.max(out_degrees)
+        # out_degree_min = np.min(out_degrees)
 
         ev_values = eigenvector_centrality(graph, max_iter=1000)
 
-        for node in range(graph.number_of_nodes()):
+        # for node in range(graph.number_of_nodes()):
+        for node in graph.nodes():
             features[node] = [(out_degrees[node] - out_degree_min) / (out_degree_max - out_degree_min), ev_values[node]]
-        with open(f"{graph_name}/graph_features", mode="wb") as f:
-            pickle.dump(features, f)
+        # with open(f"{graph_name}/graph_features", mode="wb") as f:
+        #     pickle.dump(features, f)
     return features
 
 

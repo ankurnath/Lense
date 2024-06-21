@@ -5,12 +5,15 @@ import random
 import os
 import sys
 import getopt
+from util import save_graph,load_graph
 
 np.random.seed(1)
 random.seed(1)
 
 graph_name = "wiki"
 EDGES = False
+
+print("EDGE SAMPLING:",EDGES)
 args = sys.argv[1:]
 opts, args = getopt.getopt(args, "g:e:")
 for opt, arg in opts:
@@ -28,7 +31,8 @@ if not os.path.isdir(f"{graph_name}_test/"):
 
 n = 0.2  # proportion to be used as train graph
 
-graph = nx.read_gpickle(f"{graph_name}/main")
+# graph = nx.read_gpickle(f"{graph_name}/main")
+graph=load_graph(f"{graph_name}/main")
 # graph = relabel_graph(graph)
 
 if EDGES:
@@ -55,8 +59,11 @@ if EDGES:
 
     train_graph = relabel_graph(train_graph)
     test_graph = relabel_graph(test_graph)
-    nx.write_gpickle(train_graph, f"{graph_name}_train/main")
-    nx.write_gpickle(test_graph, f"{graph_name}_test/main")
+
+    save_graph(train_graph, f"{graph_name}_train/main")
+    save_graph(test_graph, f"{graph_name}_test/main")
+    # nx.write_gpickle(train_graph, f"{graph_name}_train/main")
+    # nx.write_gpickle(test_graph, f"{graph_name}_test/main")
 
 else:
     n = int(graph.number_of_nodes() * n)
@@ -79,6 +86,8 @@ else:
 
     train_subgraph = relabel_graph(train_subgraph)
     test_subgraph = relabel_graph(test_subgraph)
-    nx.write_gpickle(train_subgraph, f"{graph_name}_train/main")
-    nx.write_gpickle(test_subgraph, f"{graph_name}_test/main")
+    save_graph(train_subgraph, f"{graph_name}_train/main")
+    save_graph(test_subgraph, f"{graph_name}_test/main")
+    # nx.write_gpickle(train_subgraph, f"{graph_name}_train/main")
+    # nx.write_gpickle(test_subgraph, f"{graph_name}_test/main")
 
