@@ -212,7 +212,7 @@ def get_test_accuracy(predictions, targets):
 def get_best_embeddings(encoder, filepath):
     with open(filepath, mode='rb') as f:
         graph_data = pickle.load(f)
-    device = "cpu" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     encoder = encoder.to(device)
 
     graphs_ = [g.to(device) for g in graph_data if g.spread_label == 1]
