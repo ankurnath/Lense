@@ -7,8 +7,8 @@ from torch_geometric.data import DataLoader, Data
 from torch_geometric.transforms import ToUndirected
 import time
 from networkx.algorithms.centrality import eigenvector_centrality
-import gurobipy as gp
-from gurobipy import GRB
+# import gurobipy as gp
+# from gurobipy import GRB
 
 
 class ProblemError(Exception):
@@ -19,6 +19,8 @@ class ProblemError(Exception):
 
 
 def cut_value(graph, seeds):
+
+    seeds=set(seeds)
     value = 0
     for node in seeds:
         for neighbour in graph.neighbors(node):
@@ -26,25 +28,52 @@ def cut_value(graph, seeds):
                 value += 1
     return value
 
-
 def max_cut_heuristic(graph, budget):
-    N = graph.number_of_nodes()
-    model = gp.Model("mip")
-    model.Params.LogToConsole = 0
-    model.setParam(GRB.Param.MIPGap, 0.05)
-    model.setParam('TimeLimit', 48 * 3600)
-    nodes = [model.addVar(name=f"{i}", vtype=GRB.BINARY) for i in range(N)]  # add a binary decision variable for every node
-    edges = {}
-    for i, j in graph.edges():
-        edges[(i, j)] = model.addVar(name=f"{(i, j)}", vtype=GRB.BINARY)  # add a binary decision variable for every edge
+    
+    sol= []
 
-    model.addConstr(sum(nodes) == budget)
-    for i, j in graph.edges():
-        model.addConstr(nodes[i] + nodes[j] - 1 <= edges[(i, j)])
-    model.setObjective(gp.quicksum([nodes[i] + nodes[j] - 2 * edges[(i, j)] for i, j in graph.edges()]), GRB.MAXIMIZE)
-    model.optimize()
-    sol = [i for i in range(N) if nodes[i].x == 1]
+    gains={node:graph.degree(node) for node in graph.nodes()}
+    spins = {node:0 for node in graph.nodes() }
+
+
+    for _ in range(budget):
+
+        selected_element= max(gains,key=gains.get)
+
+        if gains[selected_element]<0:
+            break
+        else:
+            gains[selected_element]=-gains[selected_element]
+
+            for neighbor in graph.neighbors(selected_element):
+                if neighbor in gains:
+                    gains[neighbor]+=(2*spins[neighbor]-1)*(2-4*spins[selected_element])
+
+            spins[selected_element]=1-spins[selected_element]
+
+            sol.append(selected_element)
+
     return sol
+
+
+# def max_cut_heuristic(graph, budget):
+#     N = graph.number_of_nodes()
+#     model = gp.Model("mip")
+#     model.Params.LogToConsole = 0
+#     model.setParam(GRB.Param.MIPGap, 0.05)
+#     model.setParam('TimeLimit', 48 * 3600)
+#     nodes = [model.addVar(name=f"{i}", vtype=GRB.BINARY) for i in range(N)]  # add a binary decision variable for every node
+#     edges = {}
+#     for i, j in graph.edges():
+#         edges[(i, j)] = model.addVar(name=f"{(i, j)}", vtype=GRB.BINARY)  # add a binary decision variable for every edge
+
+#     model.addConstr(sum(nodes) == budget)
+#     for i, j in graph.edges():
+#         model.addConstr(nodes[i] + nodes[j] - 1 <= edges[(i, j)])
+#     model.setObjective(gp.quicksum([nodes[i] + nodes[j] - 2 * edges[(i, j)] for i, j in graph.edges()]), GRB.MAXIMIZE)
+#     model.optimize()
+#     sol = [i for i in range(N) if nodes[i].x == 1]
+#     return sol
 
 
 def get_edge_list(graph):
@@ -61,16 +90,21 @@ def make_graph_features_for_encoder(graph, graph_name):
             features = pickle.load(f)
     except FileNotFoundError:
         features = {}
-        out_degrees = [len(list(graph.neighbors(node))) for node in range(graph.number_of_nodes())]
-        out_degree_max = np.max(out_degrees)
-        out_degree_min = np.min(out_degrees)
+        # out_degrees = [len(list(graph.neighbors(node))) for node in range(graph.number_of_nodes())]
+        # out_degree_max = np.max(out_degrees)
+        # out_degree_min = np.min(out_degrees)
+
+        out_degrees={node:graph.degree(node) for node in graph.nodes()}
+        out_degree_max = max (out_degrees.values())
+        out_degree_min = min (out_degrees.values())
 
         ev_values = eigenvector_centrality(graph, max_iter=1000)
 
-        for node in range(graph.number_of_nodes()):
+        # for node in range(graph.number_of_nodes()):
+        for node in graph.nodes():
             features[node] = [(out_degrees[node] - out_degree_min) / (out_degree_max - out_degree_min), ev_values[node]]
-        with open(f"{graph_name}/graph_features", mode="wb") as f:
-            pickle.dump(features, f)
+        # with open(f"{graph_name}/graph_features", mode="wb") as f:
+        #     pickle.dump(features, f)
     return features
 
 
