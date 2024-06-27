@@ -382,3 +382,60 @@ class GuidedExplorationEnv(GraphModification):
     def get_tensors(self):
         output, mapping, reverse_mapping, optimal = self.get_tensors_and_maps()
         return output, mapping, reverse_mapping, optimal
+
+
+
+class BigGraph(TestEnv):
+
+    def __init__(self, graph, solution_budget, subgraph_size, encoder, graph_name, action_limit=1000, cuda=False):
+
+        super(BigGraph, self).__init__(graph, solution_budget, subgraph_size, encoder, graph_name, action_limit, 1, cuda)
+
+    def get_neighbours(self):
+        self.neighbours = {}
+        unselected_nodes = [node for node in self.unique if node not in self.selected_nodes]
+        for node in self.selected_nodes:
+            adjacent_nodes = [u for u in self.graph.neighbors(node)]
+            neighbours = [n for n in adjacent_nodes if n not in self.selected_nodes]
+            if len(neighbours) > self.num_neighbours_sampled:
+                neighbour = random.sample(neighbours, k=self.num_neighbours_sampled)
+
+            elif len(neighbours) == self.num_neighbours_sampled:
+                neighbour = neighbours
+
+            else:
+                neighbour = random.sample(unselected_nodes, self.num_neighbours_sampled)
+
+            self.neighbours[node] = neighbour
+
+    def get_new_state(self, action: tuple):
+        node_to_remove, node_to_add = action
+        assert node_to_remove in self.selected_nodes, "node to remove not in selected nodes"
+        assert node_to_add not in self.selected_nodes, "node to add already in selected nodes"
+        assert node_to_add in self.unique, "node not in one hop neighbourhood"
+
+        selected_nodes = [n for n in self.selected_nodes if n != node_to_remove] + [node_to_add]
+        self.selected_nodes = set(selected_nodes)
+        assert len(self.selected_nodes) == self.subgraph_size, "selected node length does not equal subgraph size!!!"
+        self.edges = [(u, v) for node in self.selected_nodes for u, v in self.graph.edges(node)]  # double for loop!
+        self.roots = []
+        self.dest = []
+        [(self.roots.append(u), self.dest.append(v)) for u, v in self.edges]
+        self.unique = set(self.roots + self.dest)
+        self.get_neighbours()
+
+    def get_initial_subgraph(self):
+        self.selected_nodes = set(random.sample(self.graph.nodes(), self.subgraph_size))
+        assert len(self.selected_nodes) == self.subgraph_size, "selected node length does not equal subgraph size!!!"
+        self.edges = []
+        for node in self.selected_nodes:
+            one_hop_neighbours = [(u, v) for u, v in list(self.graph.edges(node))]
+            self.edges += one_hop_neighbours
+        self.roots = []
+        self.dest = []
+        [(self.roots.append(u), self.dest.append(v)) for u, v in self.edges]
+        self.unique = set(self.roots + self.dest)
+        self.get_neighbours()
+
+    def get_one_hop_neighbours(self):
+        return

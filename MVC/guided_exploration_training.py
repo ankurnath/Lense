@@ -62,7 +62,7 @@ if __name__ == "__main__":
     beta = args.beta
     decay_rate = args.decay_rate
     cuda = args.cuda
-    alpha = args.cuda
+    alpha = args.alpha
     # args = sys.argv[1:]
     # opts, args = getopt.getopt(args, "g:n:c:e:b:s:d:f:m:C:h:B:E:D:A:")
     # for opt, arg in opts:

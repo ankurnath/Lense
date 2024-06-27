@@ -59,8 +59,10 @@ class DQN:
         self.replay_count += 1
         if self.replay_count % self.replay_freq == 0:
             states, rewards, next_states, dones = self.get_batch()
-            states = torch.FloatTensor(states).to(self.device)
-            next_states = torch.FloatTensor(next_states).to(self.device)
+            # states = torch.FloatTensor(states).to(self.device)
+            states = torch.from_numpy (np.array(states,dtype=np.float32)).to(self.device)
+            next_states = torch.from_numpy (np.array(next_states,dtype=np.float32)).to(self.device)
+            # next_states = torch.FloatTensor(next_states).to(self.device)
             rewards = torch.FloatTensor(rewards).to(self.device)
             dones = torch.FloatTensor(dones).to(self.device)
 

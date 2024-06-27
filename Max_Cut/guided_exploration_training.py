@@ -10,6 +10,7 @@ import sys
 import getopt
 import numpy as np
 import copy
+import os
 
 from argparse import ArgumentParser
 def distance(x, y):
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     # graph_name = "vis_graph"
     graph_name = args.dataset
 
-    # encoder_name = "encoder"
+    encoder_name = args.encoder_name
 
     num_eps = args.num_eps
     chunksize = args.chunksize
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     decay_rate = args.decay_rate
     cuda = args.cuda
     alpha = args.alpha
-    args = sys.argv[1:]
+    # args = sys.argv[1:]
     # opts, args = getopt.getopt(args, "g:n:c:e:b:s:d:f:m:C:h:B:E:D:A:")
     # for opt, arg in opts:
     #     if opt in ['-g']:
@@ -101,12 +102,22 @@ if __name__ == "__main__":
 
     root_folder = '../../data/LeNSE/MaxCut/train'
 
-    encoder = torch.load(f"{graph_name}/budget_{soln_budget}/{encoder_name}/{encoder_name}", map_location=torch.device("cpu"))
-    graph = nx.read_gpickle(f"{graph_name}/main")
-    best_embeddings = get_best_embeddings(encoder, f"{graph_name}/budget_{soln_budget}/graph_data")
+    # encoder = torch.load(f"{graph_name}/budget_{soln_budget}/{encoder_name}/{encoder_name}", map_location=torch.device("cpu"))
+    encoder_path = os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/{encoder_name}")
+    encoder = torch.load( encoder_path , map_location=torch.device("cpu"))
+    
+    
+    # graph = nx.read_gpickle(f"{graph_name}/main")
+    # best_embeddings = get_best_embeddings(encoder, f"{graph_name}/budget_{soln_budget}/graph_data")
+    graph = nx.read_edgelist(f'../../data/snap_dataset/{args.dataset}.txt', create_using=nx.Graph(), nodetype=int)
+    graph_data_path= os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/graph_data")
+    best_embeddings = get_best_embeddings(encoder, graph_data_path)
+
     encoder.to("cpu")
-    dqn = GuidedDQN(gnn_input=gnn_input, batch_size=128, decay_rate=decay_rate, ff_hidden=ff_size, state_dim=embedding_size, gamma=0.95, max_memory=max_memory, cuda=cuda)
-    env = GuidedExplorationEnv(graph, soln_budget, subgraph_size, encoder, best_embeddings, graph_name, action_limit=selection_budget, beta=beta, cuda=cuda)
+    dqn = GuidedDQN(gnn_input=gnn_input, batch_size=128, decay_rate=decay_rate, ff_hidden=ff_size, 
+                    state_dim=embedding_size, gamma=0.95, max_memory=max_memory, cuda=cuda)
+    env = GuidedExplorationEnv(graph, soln_budget, subgraph_size, encoder, best_embeddings, graph_name, 
+                               action_limit=selection_budget, beta=beta, cuda=cuda)
     best_embedding = env.best_embedding_cpu.numpy()
 
     distances = []
@@ -145,10 +156,13 @@ if __name__ == "__main__":
             ax1.plot(moving_average(env.ratios, 50))
             ax1.hlines(0.95, 0, len(env.ratios) - 1, colors="red")
             ax2.plot(distances)
-            plt.savefig(f"{graph_name}/budget_{soln_budget}/{encoder_name}/dqn_training.pdf")
-            plt.close(fig)
+            # plt.savefig(f"{graph_name}/budget_{soln_budget}/{args.encoder_name}/dqn_training.pdf")
+            # plt.close(fig)
 
-            with open(f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn", mode="wb") as f:
+            dqn_path=os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn")
+
+            # with open(f"{graph_name}/budget_{soln_budget}/{args.encoder_name}/trained_dqn", mode="wb") as f:
+            with open(dqn_path, mode="wb") as f:
                 dqn_ = DQN(gnn_input, embedding_size, ff_size, 0.01, batch_size=0, cuda=cuda)
                 dqn_.memory = ["hold"]
                 dqn_.net = dqn.net
@@ -160,13 +174,22 @@ if __name__ == "__main__":
     ax1.plot(moving_average(env.ratios, 50))
     ax1.hlines(0.95, 0, len(env.ratios) - 1, colors="red")
     ax2.plot(distances)
-    plt.savefig(f"{graph_name}/budget_{soln_budget}/{encoder_name}/dqn_training.pdf")
+    figure_save_path= os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/dqn_training.pdf")
+    plt.savefig(figure_save_path)
     plt.close(fig)
+    # plt.savefig(f"{graph_name}/budget_{soln_budget}/{args.encoder_name}/dqn_training.pdf")
+    # plt.close(fig)
 
     dqn.memory = ["hold"]
     dqn.batch_size = 0
     dqn_ = DQN(gnn_input, embedding_size, ff_size, 0.01, batch_size=0, cuda=cuda)
     dqn_.memory = dqn.memory
     dqn_.net = dqn.net
-    with open(f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn", mode="wb") as f:
+
+    dqn_path= os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn")
+    with open(dqn_path, mode="wb") as f:
         pickle.dump(dqn_, f)
+
+
+    # with open(f"{graph_name}/budget_{soln_budget}/{args.encoder_name}/trained_dqn", mode="wb") as f:
+    #     pickle.dump(dqn_, f)
