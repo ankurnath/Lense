@@ -9,7 +9,7 @@ import copy
 
 
 class DQN:
-    def __init__(self, gnn_input=40, state_dim=2, ff_hidden=128, epsilon_min=0.05, decay_rate=0.9995, batch_size=512, gamma=0.995, max_memory=10000, tau=0.0025, cuda=False):
+    def __init__(self, gnn_input, state_dim, ff_hidden, epsilon_min, decay_rate, batch_size, gamma, max_memory, tau, cuda):
 
         self.device = "cuda" if cuda else "cpu"
         self.tau = tau
@@ -94,8 +94,10 @@ class DQN:
 
 
 class GuidedDQN(DQN):
-    def __init__(self, gnn_input=40, state_dim=2, ff_hidden=128, epsilon_min=0.05, decay_rate=0.9995, batch_size=512, gamma=0.995, max_memory=10000, tau=0.0025, cuda=False,
-                 alpha=0.1):
+    def __init__(self, gnn_input, state_dim, 
+                 ff_hidden, epsilon_min, decay_rate, batch_size, gamma, 
+                 max_memory, tau, cuda,
+                 alpha):
 
         super(GuidedDQN, self).__init__(gnn_input, state_dim, ff_hidden, epsilon_min, decay_rate, batch_size, gamma, max_memory, tau, cuda)
 

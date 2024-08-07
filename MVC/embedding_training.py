@@ -14,76 +14,19 @@ from util import *
 
 if __name__ == '__main__':
     parser = ArgumentParser()
+    parser.add_argument( "--seed", type=int, default=1, help="Seed" ) 
+    parser.add_argument( "--dataset", type=str,required=True, default='Facebook', help="Dataset" ) 
+    parser.add_argument( "--pooling", type=bool, default=True, help="Pooling" ) 
+    parser.add_argument( "--ratio", type=float, default=0.8, help="Ratio" ) 
+    parser.add_argument( "--embedding_size", type=int, default=30,required=True, help="Embedding Size" ) 
+    parser.add_argument( "--temperature", type=float, default=0.1, help="Temperature" ) 
+    parser.add_argument( "--output_size", type=int, default=10,required=True, help="Output Size" ) 
+    parser.add_argument( "--budget", type=int, default=100, help="Budget" ) 
+    parser.add_argument( "--batch_size", type=int, default=128, help="Batch Size" ) 
+    parser.add_argument( "--learning_rate", type=float, default=1e-3, help="Learning Rate" ) 
+    parser.add_argument( "--metric", type=str, default='distance', help="Metric" )
 
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=1,
-        help="Seed"
-    )
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default='Facebook',
-        help="Dataset"
-    )
-    parser.add_argument(
-        "--pooling",
-        type=bool,
-        default=True,
-        help="Pooling"
-    )
-    parser.add_argument(
-        "--ratio",
-        type=float,
-        default=0.8,
-        help="Ratio"
-    )
-    parser.add_argument(
-        "--embedding_size",
-        type=int,
-        default=30,
-        help="Embedding Size"
-    )
-    parser.add_argument(
-        "--temperature",
-        type=float,
-        default=0.1,
-        help="Temperature"
-    )
-    parser.add_argument(
-        "--output_size",
-        type=int,
-        default=10,
-        help="Output Size"
-    )
-    parser.add_argument(
-        "--budget",
-        type=int,
-        default=100,
-        help="Budget"
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=30,
-        help="Batch Size"
-    )
-    parser.add_argument(
-        "--learning_rate",
-        type=float,
-        default=1e-3,
-        help="Learning Rate"
-    )
-    parser.add_argument(
-        "--metric",
-        type=str,
-        default='distance',
-        help="Metric"
-    )
     
-    
-
     args = parser.parse_args()
 
 
@@ -105,31 +48,7 @@ if __name__ == '__main__':
     learning_rate = args.learning_rate
     metric = args.metric
 
-# budget = 100
-# batch_size = 64
-# learning_rate = 1e-3
-# metric = "distance"
-# args = sys.argv[1:]
-# opts, args = getopt.getopt(args, "g:e:r:o:t:m:b:l:p:")
-# for opt, arg in opts:
-#     if opt in ['-g']:
-#         graph = arg
-#     elif opt in ["-e"]:
-#         embedding_size = int(arg)
-#     elif opt in ["-r"]:
-#         ratio = float(arg)
-#     elif opt in ["-o"]:
-#         output_size = int(arg)
-#     elif opt in ["-t"]:
-#         temperature = float(arg)
-#     elif opt in ["-m"]:
-#         metric = arg
-#     elif opt in ["-b"]:
-#         budget = int(arg)
-#     elif opt in ["-l"]:
-#         learning_rate = float(arg)
-#     elif opt in ["-p"]:
-#         pooling = bool(int(arg))
+
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     train_ratio = 0.8
@@ -137,8 +56,7 @@ if __name__ == '__main__':
 
     data=load_from_pickle(os.path.join(root_folder,f"{graph}/budget_{budget}/graph_data"))
 
-    # with open(f"{graph}/budget_{budget}/graph_data", mode="rb") as f:
-    #     data = pickle.load(f)
+    
     random.shuffle(data)
     data = data[:2500]
     data = [d.to(device) for d in data]
@@ -163,9 +81,13 @@ if __name__ == '__main__':
 
     losses = []
     val_losses = []
+    best_val_loss = float('inf')
+    best_model_path = ""
+
     for epoch in range(1000):
         epoch_train_loss = []
         epoch_val_loss = []
+
         for count, batch in enumerate(train_loader):
             optimiser.zero_grad()
             inputs = encoder.forward(batch)
@@ -181,28 +103,73 @@ if __name__ == '__main__':
                 loss = loss_fn(inputs, batch.y)
                 epoch_val_loss.append(loss.item())
 
-        losses.append(np.mean(epoch_train_loss))
-        val_losses.append(np.mean(epoch_val_loss))
+        train_loss = np.mean(epoch_train_loss)
+        val_loss = np.mean(epoch_val_loss)
+
+        losses.append(train_loss)
+        val_losses.append(val_loss)
+
         print(f"Epoch {epoch+1}:\n"
-            f"Train loss -- {losses[-1]:.3f}\n"
-            f"Val loss -- {val_losses[-1]:.3f}\n")
+            f"Train loss -- {train_loss:.3f}\n"
+            f"Val loss -- {val_loss:.3f}\n")
+
+        # Save the best model based on validation loss
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            encoder_folder = os.path.join(root_folder, graph, f"budget_{budget}", "encoder")
+            os.makedirs(encoder_folder, exist_ok=True)
+            best_model_path = os.path.join(encoder_folder, "encoder.pth")
+            torch.save(encoder, best_model_path)
+            print(f"Best encoder model saved at: {best_model_path}")
 
         if es.step(torch.FloatTensor([val_losses[-1]])) and epoch > 20:
             break
 
+    # Print a message indicating the best model has been saved
+    print(f"Training complete. Best encoder model saved at: {best_model_path}")
 
-    # Create the full path to the encoder folder
-    encoder_folder = os.path.join(root_folder,graph, f"budget_{budget}", "encoder")
+    # losses = []
+    # val_losses = []
+    # for epoch in range(1000):
+    #     epoch_train_loss = []
+    #     epoch_val_loss = []
+    #     for count, batch in enumerate(train_loader):
+    #         optimiser.zero_grad()
+    #         inputs = encoder.forward(batch)
+    #         hard_pairs = miner(inputs, batch.y)
+    #         loss = loss_fn(inputs, batch.y, hard_pairs)
+    #         epoch_train_loss.append(loss.item())
+    #         loss.backward()
+    #         optimiser.step()
 
-    # Create all necessary folders if they don't exist
-    os.makedirs(encoder_folder, exist_ok=True)
+    #     for batch in val_loader:
+    #         with torch.no_grad():
+    #             inputs = encoder.forward(batch)
+    #             loss = loss_fn(inputs, batch.y)
+    #             epoch_val_loss.append(loss.item())
 
-    # Save the encoder model
-    encoder_path = os.path.join(encoder_folder, "encoder")
+    #     losses.append(np.mean(epoch_train_loss))
+    #     val_losses.append(np.mean(epoch_val_loss))
+    #     print(f"Epoch {epoch+1}:\n"
+    #         f"Train loss -- {losses[-1]:.3f}\n"
+    #         f"Val loss -- {val_losses[-1]:.3f}\n")
+
+    #     if es.step(torch.FloatTensor([val_losses[-1]])) and epoch > 20:
+    #         break
 
 
-    # torch.save(encoder, f"{graph}/budget_{budget}/encoder/encoder")
-    torch.save(encoder,encoder_path)
+    # # Create the full path to the encoder folder
+    # encoder_folder = os.path.join(root_folder,graph, f"budget_{budget}", "encoder")
 
-    # Print a message indicating that the file has been saved
-    print(f"Encoder model saved at: {encoder_path}")
+    # # Create all necessary folders if they don't exist
+    # os.makedirs(encoder_folder, exist_ok=True)
+
+    # # Save the encoder model
+    # encoder_path = os.path.join(encoder_folder, "encoder")
+
+
+    # # torch.save(encoder, f"{graph}/budget_{budget}/encoder/encoder")
+    # torch.save(encoder,encoder_path)
+
+    # # Print a message indicating that the file has been saved
+    # print(f"Encoder model saved at: {encoder_path}")
