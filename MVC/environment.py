@@ -102,7 +102,7 @@ class BaseEnvironment:
             self.edges += self.one_hop_neighbours[node]
         self.roots = []
         self.dest = []
-        # [(self.roots.append(u), self.dest.append(v)) for u, v in self.edges]
+        [(self.roots.append(u), self.dest.append(v)) for u, v in self.edges]
         self.unique = set(self.roots + self.dest)
         self.get_neighbours()
 

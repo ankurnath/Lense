@@ -94,15 +94,15 @@ if __name__ == "__main__":
                     cuda=cuda,
                     alpha=alpha)
     
-
+    # print(dqn.net)
     env = GuidedExplorationEnv(graph, soln_budget, subgraph_size, encoder, 
                                best_embeddings, graph_name, action_limit=T_train, 
                                beta=beta, cuda=cuda)
     
-
+    best_embedding = env.best_embedding_cpu.numpy()
     test_env = BigGraph(graph, soln_budget, subgraph_size, encoder, graph_name, 
                    action_limit=T_test, cuda=cuda)
-    best_embedding = env.best_embedding_cpu.numpy()
+    
 
     # distances = []
     # ratios = []

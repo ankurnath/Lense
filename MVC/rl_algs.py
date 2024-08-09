@@ -55,7 +55,9 @@ class DQN:
         if len(self.memory) < self.batch_size:
             return
         states, rewards, next_states, dones = self.get_batch()
+        states = np.array(states)
         states = torch.FloatTensor(states).to(self.device)
+        next_states = np.array(next_states)
         next_states = torch.FloatTensor(next_states).to(self.device)
         rewards = torch.FloatTensor(rewards).to(self.device)
         dones = torch.FloatTensor(dones).to(self.device)
