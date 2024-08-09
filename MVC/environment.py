@@ -54,6 +54,11 @@ class BaseEnvironment:
         self.get_one_hop_neighbours()
 
     def get_one_hop_neighbours(self):
+        # for node in self.graph.nodes():
+            
+        #     neighbors = set(self.graph.neighbors(node))
+        #     self.adjacent_nodes[node] = neighbors
+        #     self.one_hop_neighbours[node] = [(u, v) for u, v in self.graph.edges(node)]
         for node in self.graph.nodes():
             neighbours = [(u, v) for u, v in list(self.graph.edges(node))]
             self.adjacent_nodes[node] = [u for u in list(self.graph.neighbors(node))]
@@ -97,7 +102,7 @@ class BaseEnvironment:
             self.edges += self.one_hop_neighbours[node]
         self.roots = []
         self.dest = []
-        [(self.roots.append(u), self.dest.append(v)) for u, v in self.edges]
+        # [(self.roots.append(u), self.dest.append(v)) for u, v in self.edges]
         self.unique = set(self.roots + self.dest)
         self.get_neighbours()
 
@@ -290,7 +295,8 @@ class VisualisationEnvironment(GraphModification):
 
 
 class TestEnv(GraphModification):
-    def __init__(self, graph, solution_budget, subgraph_size, encoder, graph_name, action_limit=1000, beta=1, cuda=False):
+    def __init__(self, graph, solution_budget, subgraph_size, 
+                 encoder, graph_name, action_limit, beta=1, cuda=False):
 
         super(TestEnv, self).__init__(graph, solution_budget, subgraph_size, encoder, None, graph_name, action_limit, beta, cuda)
 

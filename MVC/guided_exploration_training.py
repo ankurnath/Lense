@@ -1,4 +1,4 @@
-from environment import GuidedExplorationEnv
+from environment import GuidedExplorationEnv,BigGraph
 import torch
 import networkx as nx
 from functions import get_best_embeddings, moving_average
@@ -28,7 +28,9 @@ if __name__ == "__main__":
     parser.add_argument('--embedding_size', type=int, default=10,required=True, help='Embedding size')
     parser.add_argument('--beta', type=float, default=1,required=True, help='Beta value')
     parser.add_argument('--alpha', type=float, default=0.1,required=True, help='Alpha value')
-    parser.add_argument('--selection_budget', type=int, default=7500,required=True, help='Selection budget')
+    parser.add_argument('--T_train', type=int, default=1500,required=True, help='The length of the train episodes')
+    parser.add_argument('--T_test', type=int, default=500,required=True, help='The length of the test episodes')
+
     parser.add_argument('--c', type=int, default=2,required=True, help='frequency with which we perform SGD on the parameters of the DQN ')
 
     parser.add_argument("--seed", type=int,default=1, help="Seed")
@@ -55,7 +57,7 @@ if __name__ == "__main__":
     num_eps = args.num_eps
     soln_budget = args.soln_budget
     subgraph_size = args.subgraph_size
-    selection_budget = args.selection_budget
+    # selection_budget = args.selection_budget
     gnn_input = args.gnn_input
     max_memory = args.max_memory
     embedding_size = args.embedding_size
@@ -64,6 +66,9 @@ if __name__ == "__main__":
     decay_rate = args.decay_rate
     cuda = args.cuda
     alpha = args.alpha
+    T_train = args.T_train
+    T_test = args.T_test
+    # print(T_test)
     
 
     root_folder = '../../data/LeNSE/MVC/train'
@@ -88,14 +93,23 @@ if __name__ == "__main__":
                     tau=0.1,
                     cuda=cuda,
                     alpha=alpha)
+    
+
     env = GuidedExplorationEnv(graph, soln_budget, subgraph_size, encoder, 
-                               best_embeddings, graph_name, action_limit=selection_budget, 
+                               best_embeddings, graph_name, action_limit=T_train, 
                                beta=beta, cuda=cuda)
+    
+
+    test_env = BigGraph(graph, soln_budget, subgraph_size, encoder, graph_name, 
+                   action_limit=T_test, cuda=cuda)
     best_embedding = env.best_embedding_cpu.numpy()
 
-    distances = []
-    ratios = []
-    rewards = []
+    # distances = []
+    # ratios = []
+    # rewards = []
+
+    best_ratio = 0.0
+    dqn_path=os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn")
     for episode in range(num_eps):
         print(f"starting episode {episode+1}")
         state = env.reset()
@@ -114,24 +128,26 @@ if __name__ == "__main__":
 
         if dqn.epsilon > dqn.epsilon_min:
             print(f"Exploration rate currently at {dqn.epsilon:.3f}")
-        final_dist = distance(env.subgraph_embedding, best_embedding)
-        distances.append(-final_dist)
-        print(f"final distance of {final_dist}")
-        print(f"Ratio of {env.ratios[-1]:.3f}, sum of rewards {sum(env.episode_rewards)}\n")
-        ratios.append(env.ratios[-1])
-       
 
-        if (episode + 1) % 1 == 0:
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-            ax1.plot(env.ratios)
-            ax1.plot(moving_average(env.ratios, 50))
-            ax1.hlines(0.95, 0, len(env.ratios) - 1, colors="red")
-            ax2.plot(distances)
-            # plt.savefig(f"{graph_name}/budget_{soln_budget}/{encoder_name}/dqn_training.pdf")
-            # plt.close(fig)
+        
+        ### test env
+        print('Testing')
+        ratio = 0
+        num_test = 10
 
-            dqn_path=os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn")
+        for _ in range(num_test):
+            state = test_env.reset()
+            done = False
+            while not done:
+                action, state_for_buffer = dqn.act(state)
+                next_state, reward, done = test_env.step(action)
+                state = next_state
 
+            ratio += env.ratios[-1]
+
+        if ratio > best_ratio:
+            print('Best ratio:',ratio)
+            best_ratio = ratio
             with open(dqn_path, mode="wb") as f:
                 dqn_ = DQN(gnn_input, embedding_size, ff_size, 0.01, batch_size=0, cuda=cuda)
                 dqn_.memory = ["hold"]
@@ -139,33 +155,67 @@ if __name__ == "__main__":
                 pickle.dump(dqn_, f)
                 del dqn_
 
+            
 
-            ratios_path = os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/guided_train_ratios")
-            with open(ratios_path, mode="wb") as f:
-                pickle.dump(env.ratios, f)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-    ax1.plot(env.ratios)
-    ax1.plot(moving_average(env.ratios, 50))
-    ax1.hlines(0.95, 0, len(env.ratios) - 1, colors="red")
-    ax2.plot(distances)
 
-    figure_save_path= os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/dqn_training.pdf")
-    plt.savefig(figure_save_path)
-    plt.close(fig)
 
-    dqn.memory = ["hold"]
-    dqn.batch_size = 0
-    dqn_ = DQN(gnn_input, embedding_size, ff_size, 0.01, batch_size=0, cuda=cuda)
-    dqn_.memory = dqn.memory
-    dqn_.net = dqn.net
 
-    dqn_path= os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn")
-    with open(dqn_path, mode="wb") as f:
-        pickle.dump(dqn_, f)
 
-    ratios_path=os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/guided_train_ratios")
-    with open(ratios_path, mode="wb") as f:
-        pickle.dump(env.ratios, f)
 
-    print(env.ratios)
+
+        # final_dist = distance(env.subgraph_embedding, best_embedding)
+        # distances.append(-final_dist)
+        # print(f"final distance of {final_dist}")
+        # print(f"Ratio of {env.ratios[-1]:.3f}, sum of rewards {sum(env.episode_rewards)}\n")
+        # ratios.append(env.ratios[-1])
+       
+
+    #     if (episode + 1) % 1 == 0:
+    #         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+    #         ax1.plot(env.ratios)
+    #         ax1.plot(moving_average(env.ratios, 50))
+    #         ax1.hlines(0.95, 0, len(env.ratios) - 1, colors="red")
+    #         ax2.plot(distances)
+    #         # plt.savefig(f"{graph_name}/budget_{soln_budget}/{encoder_name}/dqn_training.pdf")
+    #         # plt.close(fig)
+
+    #         dqn_path=os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn")
+
+    #         with open(dqn_path, mode="wb") as f:
+    #             dqn_ = DQN(gnn_input, embedding_size, ff_size, 0.01, batch_size=0, cuda=cuda)
+    #             dqn_.memory = ["hold"]
+    #             dqn_.net = dqn.net
+    #             pickle.dump(dqn_, f)
+    #             del dqn_
+
+
+    #         ratios_path = os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/guided_train_ratios")
+    #         with open(ratios_path, mode="wb") as f:
+    #             pickle.dump(env.ratios, f)
+
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+    # ax1.plot(env.ratios)
+    # ax1.plot(moving_average(env.ratios, 50))
+    # ax1.hlines(0.95, 0, len(env.ratios) - 1, colors="red")
+    # ax2.plot(distances)
+
+    # figure_save_path= os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/dqn_training.pdf")
+    # plt.savefig(figure_save_path)
+    # plt.close(fig)
+
+    # dqn.memory = ["hold"]
+    # dqn.batch_size = 0
+    # dqn_ = DQN(gnn_input, embedding_size, ff_size, 0.01, batch_size=0, cuda=cuda)
+    # dqn_.memory = dqn.memory
+    # dqn_.net = dqn.net
+
+    # dqn_path= os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn")
+    # with open(dqn_path, mode="wb") as f:
+    #     pickle.dump(dqn_, f)
+
+    # ratios_path=os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/guided_train_ratios")
+    # with open(ratios_path, mode="wb") as f:
+    #     pickle.dump(env.ratios, f)
+
+    # print(env.ratios)

@@ -78,7 +78,8 @@ if __name__ == "__main__":
     dqn.device = "cuda" if cuda else "cpu"
     dqn.net = dqn.net.to(dqn.device)
     # env = TestEnv(graph, soln_budget, subgraph_size, encoder, test_graph_name, action_limit=action_limit, beta=50, cuda=cuda)
-    env = BigGraph(graph, soln_budget, subgraph_size, encoder, args.dataset, action_limit=action_limit, cuda=cuda)
+    env = BigGraph(graph, soln_budget, subgraph_size, encoder, args.dataset, 
+                   action_limit=action_limit, cuda=cuda)
     ratios = []
     rewards = []
     num_nodes = []
