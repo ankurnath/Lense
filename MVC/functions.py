@@ -241,7 +241,9 @@ def get_label(score):
     elif score >= 0.6:
         label = 3
     else:
-        label = 3
+        label = 4
+    # else:
+    #     label =3
     return label
 
 
@@ -253,18 +255,21 @@ def get_fixed_size_subgraphs(graph, good_seeds, num_samples, BUDGET, size, best_
         all_good_seeds = good_seeds
 
         if target_label == 1:
-
             seeds = np.random.choice(list(good_seeds), size=BUDGET, replace=False).tolist()
             seeds += random.sample([n for n in graph.nodes() if n not in seeds], size - len(seeds))
 
         elif target_label == 2:
 
+            # r = np.random.uniform(0.7, 0.9)
             r = np.random.uniform(0.5, 0.8)
             seeds = np.random.choice(list(good_seeds), size=int(BUDGET * r), replace=False).tolist()
             seeds += random.sample([n for n in graph.nodes() if n not in (list(good_seeds) + seeds)], size - len(seeds))
 
         elif target_label == 3:
-            seeds = np.random.choice(list(good_seeds), size=int(BUDGET * 0.0), replace=False).tolist()
+            # r = np.random.uniform(0.5, 0.7)
+            r = np.random.uniform(0.5, 0.8)
+            seeds = np.random.choice(list(good_seeds), size=int(BUDGET * r), replace=False).tolist()
+            # seeds = np.random.choice(list(good_seeds), size=int(BUDGET * 0.0), replace=False).tolist()
             seeds += random.sample([n for n in graph.nodes() if n not in (list(good_seeds) + seeds)], size - len(seeds))
 
         elif target_label == 4:

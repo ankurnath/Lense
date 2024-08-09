@@ -25,19 +25,19 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str,default='Facebook', help="Dataset")
 
     parser.add_argument('--encoder_name', type=str, default="encoder", help='Name of the encoder')
-    parser.add_argument('--num_eps', type=int, default=100, help='Number of episodes')
+    parser.add_argument('--num_eps', type=int, default=10,required=True, help='Number of episodes')
     parser.add_argument('--chunksize', type=int, default=28, help='Chunk size')
     parser.add_argument('--soln_budget', type=int, default=100, help='Solution budget')
-    parser.add_argument('--subgraph_size', type=int, default=300, help='Subgraph size')
-    parser.add_argument('--selection_budget', type=int, default=7500, help='Selection budget')
-    parser.add_argument('--gnn_input', type=int, default=30, help='GNN input size')
-    parser.add_argument('--max_memory', type=int, default=20000, help='Maximum memory')
-    parser.add_argument('--embedding_size', type=int, default=10, help='Embedding size')
+    parser.add_argument('--subgraph_size', type=int, default=300,required=True, help='Subgraph size')
+    parser.add_argument('--selection_budget', type=int, default=1500,required=True, help='Selection budget')
+    parser.add_argument('--gnn_input', type=int, default=75, help='GNN input size')
+    parser.add_argument('--max_memory', type=int, default=25000, help='Maximum memory')
+    parser.add_argument('--embedding_size', type=int, default=25,required=True, help='Embedding size')
     parser.add_argument('--ff_size', type=int, default=128, help='Feed-forward size')
-    parser.add_argument('--beta', type=float, default=1, help='Beta value')
-    parser.add_argument('--decay_rate', type=float, default=0.999975, help='Decay rate')
+    parser.add_argument('--beta', type=float, default=30,required=True, help='Beta value')
+    parser.add_argument('--decay_rate', type=float, default= 0.9995, help='Decay rate')
     parser.add_argument('--cuda', type=bool, default=True, help='Use CUDA')
-    parser.add_argument('--alpha', type=float, default=0.1, help='Alpha value')
+    parser.add_argument('--alpha', type=float, default=0.1,required=True, help='Alpha value')
     args = parser.parse_args()
 
     torch.random.manual_seed(args.seed)
@@ -101,6 +101,8 @@ if __name__ == "__main__":
 
     encoder_path = os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/{encoder_name}")
     encoder = torch.load( encoder_path , map_location=torch.device("cpu"))
+
+    print(encoder)
     # graph = nx.read_gpickle(f"{graph_name}/main")
     # graph=load_graph(f"{graph_name}/main")
     graph = nx.read_edgelist(f'../../data/snap_dataset/{args.dataset}.txt', create_using=nx.Graph(), nodetype=int)
@@ -110,6 +112,8 @@ if __name__ == "__main__":
     dqn = GuidedDQN(gnn_input=gnn_input, batch_size=128, decay_rate=decay_rate, ff_hidden=ff_size, state_dim=embedding_size, 
                     gamma=0.95, max_memory=max_memory, cuda=cuda,
                     alpha=alpha)
+    
+    print(dqn.net)
     env = GuidedExplorationEnv(graph, soln_budget, subgraph_size, encoder, 
                                best_embeddings, graph_name, action_limit=selection_budget, 
                                beta=beta, cuda=cuda)

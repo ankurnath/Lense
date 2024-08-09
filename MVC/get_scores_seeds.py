@@ -14,24 +14,28 @@ from argparse import ArgumentParser
 if __name__ == '__main__':
 
     parser = ArgumentParser()
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=1,
-        help="Seed"
-    )
-    parser.add_argument(
-        "--budget",
-        type=int,
-        default=100,
-        help="Budget"
-    )
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default='Facebook',
-        help="Dataset"
-    )
+    parser.add_argument( "--seed", type=int, default=1, help="Seed" )
+    parser.add_argument( "--budget", type=int, default=100,required=True, help="Budget" )
+    parser.add_argument( "--dataset", type=str, default='Facebook',required=True, help="Dataset" )
+
+    # parser.add_argument(
+    #     "--seed",
+    #     type=int,
+    #     default=1,
+    #     help="Seed"
+    # )
+    # parser.add_argument(
+    #     "--budget",
+    #     type=int,
+    #     default=100,
+    #     help="Budget"
+    # )
+    # parser.add_argument(
+    #     "--dataset",
+    #     type=str,
+    #     default='Facebook',
+    #     help="Dataset"
+    # )
 
 
     args = parser.parse_args()

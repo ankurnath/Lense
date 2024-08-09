@@ -15,73 +15,17 @@ from util import *
 if __name__ == '__main__':
     parser = ArgumentParser()
 
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=1,
-        help="Seed"
-    )
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default='Facebook',
-        help="Dataset"
-    )
-    parser.add_argument(
-        "--pooling",
-        type=bool,
-        default=True,
-        help="Pooling"
-    )
-    parser.add_argument(
-        "--ratio",
-        type=float,
-        default=0.8,
-        help="Ratio"
-    )
-    parser.add_argument(
-        "--embedding_size",
-        type=int,
-        default=30,
-        help="Embedding Size"
-    )
-    parser.add_argument(
-        "--temperature",
-        type=float,
-        default=0.1,
-        help="Temperature"
-    )
-    parser.add_argument(
-        "--output_size",
-        type=int,
-        default=10,
-        help="Output Size"
-    )
-    parser.add_argument(
-        "--budget",
-        type=int,
-        default=100,
-        help="Budget"
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=30,
-        help="Batch Size"
-    )
-    parser.add_argument(
-        "--learning_rate",
-        type=float,
-        default=1e-3,
-        help="Learning Rate"
-    )
-    parser.add_argument(
-        "--metric",
-        type=str,
-        default='distance',
-        help="Metric"
-    )
-    
+    parser.add_argument("--seed",type=int,default=1,help="Seed")
+    parser.add_argument( "--dataset", type=str, default='Facebook', help="Dataset" ) # default set from paper
+    parser.add_argument( "--pooling", type=bool, default=True, help="Pooling" ) # default set from paper
+    parser.add_argument( "--ratio", type=float, default=0.8, help="Ratio" ) # default set from paper
+    parser.add_argument( "--batch_size", type=int, default=128, help="Batch Size" ) # default set from paper
+    parser.add_argument( "--learning_rate", type=float, default=0.001, help="Learning Rate" ) # default set from paper
+    parser.add_argument( "--metric", type=str, default='distance', help="Metric" ) # default set from paper
+    parser.add_argument( "--temperature", type=float, default=0.1, help="Temperature" ) # default set from paper
+    parser.add_argument( "--embedding_size", type=int, default=30,required=True, help="Embedding Size" )
+    parser.add_argument( "--output_size", type=int,required=True,  help="Output Size" )
+    parser.add_argument( "--budget", type=int, default=100,required=True, help="Budget" )
     
 
     args = parser.parse_args()

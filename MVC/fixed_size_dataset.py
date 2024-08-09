@@ -17,60 +17,27 @@ if __name__ == '__main__':
 
 
     parser = ArgumentParser()
+    parser.add_argument( "--seed", type=int, default=1, help="Seed" )
+    parser.add_argument( "--dataset", type=str, default='Facebook',required=True, help="Dataset" )
+    parser.add_argument( "--num_samples", type=int, default=100,required=True, help="Number of samples" )
+    parser.add_argument( "--num_checkpoints", type=int, default=1, help="Number of checkpoints" )
+    parser.add_argument( "--budget", type=int, default=100,required=True, help="Budget" )
+    parser.add_argument( "--fixed_size", type=int, default=300,required=True, help="Fixed size " )
 
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=1,
-        help="Seed"
-    )
-
-    parser.add_argument(
-        "--num_samples",
-        type=int,
-        default=1000,
-        help="Number of samples"
-    )
-    parser.add_argument(
-        "--num_checkpoints",
-        type=int,
-        default=1,
-        help="Number of checkpoints"
-    )
-    parser.add_argument(
-        "--budget",
-        type=int,
-        default=100,
-        help="Budget"
-    )
-    parser.add_argument(
-        "--fixed_size",
-        type=int,
-        default=300,
-        help="Fixed size "
-    )
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default='Facebook',
-        help="Dataset"
-    )
     
-
-
     args = parser.parse_args()
     random.seed(args.seed)
     np.random.seed(args.seed)
     # NUM_SAMPLES = 1000
-    NUM_SAMPLES=args.num_samples
+    NUM_SAMPLES = args.num_samples
     # NUM_CHECKPOINTS = 1
-    NUM_CHECKPOINTS=args.num_checkpoints
+    NUM_CHECKPOINTS = args.num_checkpoints
     # BUDGET = 100
-    BUDGET= args.budget
+    BUDGET = args.budget
     # FIXED_SIZE = 300 # I changed this 
-    FIXED_SIZE=args.fixed_size
+    FIXED_SIZE = args.fixed_size
     # graph_name = "wiki_train"
-    graph_name=args.dataset
+    graph_name = args.dataset
     # args = sys.argv[1:]
     # opts, args = getopt.getopt(args, "g:n:b:c:f:")
     # for opt, arg in opts:
@@ -144,13 +111,15 @@ if __name__ == '__main__':
         #     pickle.dump(subgraphs, f)
         del subgraphs
 
-    # for i in range(NUM_CHECKPOINTS):
-    #     count += 1
-    #     print("checkpoint", count)
-    #     subgraphs = get_fixed_size_subgraphs(graph, good_seeds, N_PER_LOOP, BUDGET, FIXED_SIZE, best_score, graph_features, 4)
-    #     with open(f"{graph_name}/budget_{BUDGET}/data_{count}", mode="wb") as f:
-    #         pickle.dump(subgraphs, f)
-    #     del subgraphs
+    for i in range(NUM_CHECKPOINTS):
+        count += 1
+        print("checkpoint", count)
+        subgraphs = get_fixed_size_subgraphs(graph, good_seeds, N_PER_LOOP, BUDGET, FIXED_SIZE, best_score, graph_features, 4)
+        file_path=os.path.join(root_folder,f"{graph_name}/budget_{BUDGET}/data_{count}")
+        save_to_pickle(subgraphs,file_path)
+        # with open(f"{graph_name}/budget_{BUDGET}/data_{count}", mode="wb") as f:
+        #     pickle.dump(subgraphs, f)
+        del subgraphs
 
     subgraphs = []
 
