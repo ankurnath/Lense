@@ -95,11 +95,11 @@ if __name__ == "__main__":
                     alpha=alpha)
     
     # print(dqn.net)
-    env = GuidedExplorationEnv(graph, soln_budget, subgraph_size, encoder, 
-                               best_embeddings, graph_name, action_limit=T_train, 
-                               beta=beta, cuda=cuda)
+    # env = GuidedExplorationEnv(graph, soln_budget, subgraph_size, encoder, 
+    #                            best_embeddings, graph_name, action_limit=T_train, 
+    #                            beta=beta, cuda=cuda)
     
-    best_embedding = env.best_embedding_cpu.numpy()
+    # best_embedding = env.best_embedding_cpu.numpy()
     test_env = BigGraph(graph, soln_budget, subgraph_size, encoder, graph_name, 
                    action_limit=T_test, cuda=cuda)
     
@@ -108,6 +108,9 @@ if __name__ == "__main__":
     # ratios = []
     # rewards = []
 
+
+
+    print('*********************')
     best_ratio = 0.0
     dqn_path=os.path.join(root_folder,f"{graph_name}/budget_{soln_budget}/{encoder_name}/trained_dqn")
     for episode in range(num_eps):
@@ -134,16 +137,19 @@ if __name__ == "__main__":
         print('Testing')
         ratio = 0
         num_test = 10
+        dqn_ = DQN(gnn_input, embedding_size, ff_size, 0.01, batch_size=0, cuda=cuda)
+        dqn_.memory = ["hold"]
+        dqn_.net = dqn.net
 
         for _ in range(num_test):
             state = test_env.reset()
             done = False
             while not done:
-                action, state_for_buffer = dqn.act(state)
+                action, state_for_buffer = dqn_.act(state)
                 next_state, reward, done = test_env.step(action)
                 state = next_state
 
-            ratio += env.ratios[-1]
+            ratio += test_env.ratios[-1]
 
         if ratio > best_ratio:
             print('Best ratio:',ratio)
